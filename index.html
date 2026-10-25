@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0f1b2d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Borç Takip">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Borç Takip</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="lock" class="lock hidden">
+  <div class="lock-box">
+    <div class="lock-icon">🔒</div>
+    <h2>Borç Takip</h2>
+    <p>PIN kodunu gir</p>
+    <input id="pinInput" type="password" inputmode="numeric" maxlength="8" autocomplete="off">
+    <button id="pinBtn" class="btn primary wide">Aç</button>
+    <p id="pinErr" class="err"></p>
+  </div>
+</div>
+
+<header class="top">
+  <h1 id="title">Özet</h1>
+  <button id="settingsBtn" class="icon-btn" aria-label="Ayarlar">⚙︎</button>
+</header>
+
+<main id="app"></main>
+
+<nav class="tabs">
+  <button data-tab="ozet" class="active"><span>◎</span>Özet</button>
+  <button data-tab="krediler"><span>▤</span>Krediler</button>
+  <button data-tab="takvim"><span>▦</span>Takvim</button>
+  <button data-tab="butce"><span>⇅</span>Bütçe</button>
+  <button data-tab="plan"><span>➚</span>Plan</button>
+</nav>
+
+<div id="modal" class="modal hidden"><div class="sheet" id="sheet"></div></div>
+<input type="file" id="fileInput" accept="application/json,.json" class="hidden">
+
+<script src="app.js"></script>
+</body>
+</html>
