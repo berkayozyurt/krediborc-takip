@@ -45,6 +45,20 @@
 <div id="modal" class="modal hidden"><div class="sheet" id="sheet"></div></div>
 <input type="file" id="fileInput" class="hidden">
 
-<script src="app.js"></script>
+<script>
+  // Açılış kontrolü: app.js yüklenemez ya da çalışmazsa sebebi ekranda yazsın.
+  window.__bootErr = [];
+  window.onerror = function (m, src, line) { window.__bootErr.push(m + (line ? ' (satır ' + line + ')' : '')); };
+  setTimeout(function () {
+    var app = document.getElementById('app'), lock = document.getElementById('lock');
+    if (app && !app.innerHTML.trim() && lock.classList.contains('hidden')) {
+      app.innerHTML = '<div class="card"><h3>Uygulama açılamadı</h3><p class="small muted" style="margin:6px 0 12px">' +
+        (window.__bootErr.length ? 'Hata: ' + window.__bootErr.join(' · ').replace(/</g, '&lt;') : 'app.js yüklenmedi ya da çalışmadı.') +
+        '</p><p class="small muted">Bu ekranın görüntüsünü at. Kayıtlı veriler bozulduysa:</p>' +
+        '<button class="btn danger" onclick="if(confirm(\'Telefondaki kayıtlı veriler silinsin mi?\')){try{localStorage.clear();sessionStorage.clear()}catch(e){};location.reload()}">Verileri sıfırla ve yeniden aç</button></div>';
+    }
+  }, 2500);
+</script>
+<script src="app.js?v=3"></script>
 </body>
 </html>

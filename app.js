@@ -18,11 +18,27 @@ let budgetMonth = ymOf(todayISO());
 
 /* ---------- storage ---------- */
 function load() {
-  try { const d = JSON.parse(localStorage.getItem(KEY)); return d ? { ...blank(), ...d } : blank(); }
+  try { const d = JSON.parse(localStorage.getItem(KEY)); return d ? repair({ ...blank(), ...d }) : blank(); }
   catch { return blank(); }
 }
+/* Eksik / bozuk alanları düzelt ki tek bir hatalı kayıt uygulamayı kilitlemesin. */
+function repair(s) {
+  const n = v => (typeof v === 'number' && isFinite(v) ? v : num(v));
+  const okDate = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+  s.loans = (Array.isArray(s.loans) ? s.loans : []).filter(l => l && typeof l === 'object').map(l => ({
+    ...l, id: l.id || uid(), name: l.name || 'Kredi', bank: l.bank || '',
+    amount: n(l.amount), debt: n(l.debt), payment: n(l.payment) || (l.remaining ? n(l.debt) / l.remaining : 0),
+    remaining: parseInt(l.remaining) || 0, rate: n(l.rate), payoff: n(l.payoff),
+    next: okDate(l.next) ? l.next : todayISO(),
+  }));
+  s.fixed = (Array.isArray(s.fixed) ? s.fixed : []).filter(Boolean).map(f => ({ ...f, id: f.id || uid(), name: f.name || 'Gider', amount: n(f.amount) }));
+  s.tx = (Array.isArray(s.tx) ? s.tx : []).filter(Boolean).map(t => ({ ...t, id: t.id || uid(), amount: n(t.amount), type: t.type === 'gelir' ? 'gelir' : 'gider', date: okDate(t.date) ? t.date : todayISO() }));
+  s.income = n(s.income);
+  s.plan = { extra: null, strategy: 'avalanche', ...(s.plan && typeof s.plan === 'object' ? s.plan : {}) };
+  return s;
+}
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} }
-const uid = () => Math.random().toString(36).slice(2, 10);
+function uid() { return Math.random().toString(36).slice(2, 10); }
 
 /* ---------- helpers ---------- */
 function tl(n, dec = 2) {
@@ -516,7 +532,7 @@ document.addEventListener('click', async e => {
     case 'setPin': {
       const p = $('#newPin').value.trim();
       if (!/^\d{4,8}$/.test(p)) return alert('PIN 4-8 rakam olmalı.');
-      S.pinHash = await sha(p); save(); sessionStorage.setItem('bt_unlocked', '1'); settings(); break;
+      S.pinHash = await sha(p); save(); try { sessionStorage.setItem('bt_unlocked', '1'); } catch {} settings(); break;
     }
     case 'clearPin': S.pinHash = null; save(); settings(); break;
     case 'export': {
@@ -537,7 +553,7 @@ $('#fileInput').addEventListener('change', async e => {
     if (!Array.isArray(d.loans)) throw 0;
     if (S.loans.length && !confirm('Mevcut verilerin yerine yedektekiler yüklensin mi?')) return;
     const pin = S.pinHash;
-    S = { ...blank(), ...d, pinHash: pin };
+    S = repair({ ...blank(), ...d, pinHash: pin });
     S.loans.forEach(l => l.id ||= uid());
     save(); closeSheet(); tab = 'ozet'; render();
   } catch { alert('Dosya okunamadı. Doğru JSON dosyasını seçtiğinden emin ol.'); }
@@ -547,7 +563,7 @@ $('#fileInput').addEventListener('change', async e => {
 /* ---------- hata gösterimi ---------- */
 function showError(msg) {
   const el = $('#app');
-  el.insertAdjacentHTML('afterbegin', `<div class="tip bad"><span class="i">⚠️</span><span>Bir hata oluştu: ${esc(msg)}<br><small>Bu mesajın ekran görüntüsünü at, düzelteyim.</small></span></div>`);
+  el.insertAdjacentHTML('afterbegin', `<div class="tip bad"><span class="i">⚠️</span><span>Bir hata oluştu: ${esc(msg)}<br><small>Bu mesajın ekran görüntüsünü at, düzelteyim.</small><br><button class="btn sm danger" style="margin-top:8px" onclick="if(confirm('Telefondaki kayıtlı veriler silinsin mi?')){try{localStorage.clear()}catch(e){};location.reload()}">Verileri sıfırla</button></span></div>`);
 }
 window.addEventListener('error', e => showError(e.message));
 window.addEventListener('unhandledrejection', e => showError(String(e.reason)));
@@ -555,11 +571,13 @@ window.addEventListener('unhandledrejection', e => showError(String(e.reason)));
 /* ---------- lock ---------- */
 async function unlock() {
   const ok = (await sha($('#pinInput').value.trim())) === S.pinHash;
-  if (ok) { sessionStorage.setItem('bt_unlocked', '1'); $('#lock').classList.add('hidden'); render(); }
+  if (ok) { try { sessionStorage.setItem('bt_unlocked', '1'); } catch {} $('#lock').classList.add('hidden'); render(); }
   else { $('#pinErr').textContent = 'PIN yanlış'; $('#pinInput').value = ''; }
 }
 $('#pinBtn').onclick = unlock;
 $('#pinInput').onkeydown = e => { if (e.key === 'Enter') unlock(); };
 
-if (S.pinHash && !sessionStorage.getItem('bt_unlocked')) { $('#lock').classList.remove('hidden'); setTimeout(() => $('#pinInput').focus(), 100); }
-else render();
+let unlocked = false;
+try { unlocked = !!sessionStorage.getItem('bt_unlocked'); } catch {}
+if (S.pinHash && !unlocked) { $('#lock').classList.remove('hidden'); setTimeout(() => $('#pinInput').focus(), 100); }
+else { try { render(); } catch (err) { showError(err.message); } }
