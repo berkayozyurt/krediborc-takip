@@ -32,7 +32,8 @@ const tl0 = n => tl(n, 0);
 function num(v) {
   if (typeof v === 'number') return v;
   v = String(v || '').trim().replace(/\s|₺|TL/gi, '');
-  if (v.includes(',')) v = v.replace(/\./g, '').replace(',', '.');
+  if (v.includes(',')) v = v.replace(/\./g, '').replace(',', '.');          // 1.234,56
+  else if (/^-?\d{1,3}(\.\d{3})+$/.test(v)) v = v.replace(/\./g, '');      // 60.000 → 60000
   return parseFloat(v) || 0;
 }
 function todayISO() { const d = new Date(); return iso(d); }
@@ -542,6 +543,14 @@ $('#fileInput').addEventListener('change', async e => {
   } catch { alert('Dosya okunamadı. Doğru JSON dosyasını seçtiğinden emin ol.'); }
   e.target.value = '';
 });
+
+/* ---------- hata gösterimi ---------- */
+function showError(msg) {
+  const el = $('#app');
+  el.insertAdjacentHTML('afterbegin', `<div class="tip bad"><span class="i">⚠️</span><span>Bir hata oluştu: ${esc(msg)}<br><small>Bu mesajın ekran görüntüsünü at, düzelteyim.</small></span></div>`);
+}
+window.addEventListener('error', e => showError(e.message));
+window.addEventListener('unhandledrejection', e => showError(String(e.reason)));
 
 /* ---------- lock ---------- */
 async function unlock() {
